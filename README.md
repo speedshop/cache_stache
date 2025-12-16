@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/speedshop/cache_stache/actions/workflows/ci.yml/badge.svg)](https://github.com/speedshop/cache_stache/actions/workflows/ci.yml)
 
-CacheStache tracks cache hit rates for Rails apps. It counts how often your cache has data (hits) and how often it does not (misses). You can view these counts on a web page.
+Have you ever had to work with a Redis cache provider which doesn't provide hitrate stats? It's a bummer. Use this gem!
 
-A higher hit rate means your app finds data in the cache more often. This means fewer slow calls to your database or other services. CacheStache helps you see this rate over time and spot problems.
+CacheStache tracks cache hit rates for Rails apps. It counts how often your cache has data (hits) and how often it does not (misses). You can view these counts on a web page.
 
 ## Features
 
@@ -42,7 +42,7 @@ A higher hit rate means your app finds data in the cache more often. This means 
 
 4. Restart Rails and go to `/cache-stache`.
 
-### Add a Password (Optional)
+### Add Authentication
 
 You can add a password to the web page:
 
@@ -104,7 +104,7 @@ end
 | `bucket_seconds` | 5 minutes | Size of each time bucket |
 | `retention_seconds` | 7 days | How long to keep data |
 | `max_buckets` | 288 | Maximum number of buckets to query |
-| `sample_rate` | 1.0 | Not yet active |
+| `sample_rate` | 1.0 | Sample events |
 | `enabled` | true | Turn tracking on or off |
 | `use_rack_after_reply` | false | Wait to write until after response |
 
@@ -126,37 +126,6 @@ end
 
 A cache key can match more than one keyspace.
 
-## Web Page
-
-The web page shows:
-
-- Total hit rate
-- Hit rate for each keyspace
-- Current settings
-- Size of stored data
-
-Time windows: 5m, 15m, 1h (default), 6h, 1d, 1w.
-
-Click a keyspace name to see more detail.
-
-## How It Works
-
-```
-Rails.cache.fetch(...)
-  -> Rails sends an event
-  -> CacheStache counts it
-  -> CacheStache stores the count
-  -> Web page shows the counts
-```
-
-1. **Counting**: CacheStache listens for cache events. It skips its own cache calls.
-
-2. **Buckets**: Times are rounded down to `bucket_seconds`. Each event adds to hit or miss counts.
-
-3. **Storage**: Counts are stored with keys like `cache_stache:v1:production:1234567890`. Each bucket expires after `retention_seconds`.
-
-4. **Reading**: The web page reads all buckets and adds them up.
-
 ## Query Stats in Code
 
 You can get stats from Ruby code:
@@ -171,61 +140,7 @@ results[:overall][:misses]            # => 210
 results[:keyspaces][:profiles][:hit_rate_percent]  # => 92.1
 ```
 
-## Test Data
-
-Make fake data with:
-
-```bash
-rails runner lib/cache_stache/bin/test_day_simulation.rb
-```
-
-This makes 24 hours of fake cache events. Then go to `/cache-stache` to see it.
-
 ## Limits
 
-- The `sample_rate` setting does nothing yet.
 - Only cache reads are tracked. Writes and deletes are not.
-- If you have two cache stores of the same type, their events will be mixed.
-
-## Files
-
-```
-lib/cache_stache/
-├── app/               # Web page views and code
-├── bin/               # Test scripts
-├── config/            # Routes
-├── lib/               # Gem/engine Ruby code
-│   ├── cache_stache.rb
-│   ├── cache_stache/
-│   └── generators/
-├── Gemfile            # Standalone bundler entrypoint
-├── cache_stache.gemspec
-├── Rakefile
-├── spec/              # Tests
-├── tasks/             # Rake tasks
-```
-
-## Running Specs (Standalone)
-
-CacheStache can be tested independently from the host Rails app:
-
-```bash
-cd lib/cache_stache
-bundle install
-bundle exec rspec
-```
-
-From the host app root, you can also run the engine suite without `cd`:
-
-```bash
-BUNDLE_GEMFILE=lib/cache_stache/Gemfile bundle exec rspec --options lib/cache_stache/.rspec lib/cache_stache/spec
-```
-
-## Run Tests
-
-```bash
-cd lib/cache_stache
-bundle exec rspec
-```
-
-Tests are in `lib/cache_stache/spec/`. They do not need Redis.
+- If you have two cache stores of the same type (redis, memcached, etc), their events will be mixed.
