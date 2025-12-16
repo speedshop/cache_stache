@@ -1,0 +1,25 @@
+*.gem
+pkg/
+Gemfile.lock
+
+# Documentation
+doc/
+.yardoc/
+
+# Testing
+.rspec_status
+coverage/
+spec/dummy_app/log/
+spec/dummy_app/tmp/
+
+# Bundler
+.bundle/
+
+# IDE/Editor
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store

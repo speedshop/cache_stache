@@ -1,0 +1,35 @@
+===============================================================================
+
+CacheStache has been installed!
+
+Next steps:
+
+1. Review and customize config/initializers/cache_stache.rb
+
+2. Mount the dashboard in your routes.rb:
+
+   # config/routes.rb
+   require "cache_stache/web"
+
+   # Optional: Add authentication
+   CacheStache::Web.use Rack::Auth::Basic do |user, pass|
+     ActiveSupport::SecurityUtils.secure_compare(user, ENV["CACHE_STACHE_USER"]) &&
+       ActiveSupport::SecurityUtils.secure_compare(pass, ENV["CACHE_STACHE_PASS"])
+   end
+
+   mount CacheStache::Web, at: "/cache-stache"
+
+3. Set environment variables (if using auth):
+   CACHE_STACHE_USER=admin
+   CACHE_STACHE_PASS=secret
+
+4. Start your Rails server and visit /cache-stache
+
+5. (Optional) Add keyspaces to track specific cache patterns in the initializer
+
+Rake tasks:
+  rake cache_stache:config  # Show current configuration
+  rake cache_stache:stats   # Show current stats
+  rake cache_stache:prune   # Manually prune old data
+
+===============================================================================

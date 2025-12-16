@@ -1,0 +1,83 @@
+<p><small><%= link_to "← Back to Dashboard", root_path(window: params[:window]) %></small></p>
+
+<div class="grid">
+  <div>
+    <%= form_with url: keyspace_path(@keyspace.name), method: :get, local: true do |f| %>
+      <label for="window">
+        Time Window:
+        <%= f.select :window, window_options, { selected: params[:window] || "1h" }, { onchange: "this.form.submit();" } %>
+      </label>
+    <% end %>
+  </div>
+  <div>
+    <small>Last updated: <%= Time.current.strftime("%Y-%m-%d %H:%M:%S %Z") %></small>
+  </div>
+</div>
+
+<article>
+    <header>
+      <h2><%= @keyspace.label %></h2>
+      <p><small>Pattern: <code><%= @keyspace.pattern.inspect %></code></small></p>
+    </header>
+
+    <div role="group">
+      <article>
+        <small>Hit Rate</small>
+        <h3><mark><%= number_to_percentage(@keyspace_stats[:hit_rate_percent], precision: 1) %></mark></h3>
+      </article>
+      <article>
+        <small>Total Operations</small>
+        <h3><%= number_with_delimiter(@keyspace_stats[:total_operations]) %></h3>
+      </article>
+      <article>
+        <small>Cache Hits</small>
+        <h3><%= number_with_delimiter(@keyspace_stats[:hits]) %></h3>
+      </article>
+      <article>
+        <small>Cache Misses</small>
+        <h3><%= number_with_delimiter(@keyspace_stats[:misses]) %></h3>
+      </article>
+    </div>
+
+    <footer>
+      <small>
+        Showing data for the last <%= current_window_label %>
+        (<%= @results[:bucket_count] %> buckets of <%= @config.bucket_seconds / 60 %> minutes each)
+      </small>
+    </footer>
+  </article>
+
+  <article>
+    <header>
+      <h2>Hit Rate Over Time</h2>
+    </header>
+    <% sparkline = sparkline_data(@results[:buckets], @keyspace.name) %>
+    <% if sparkline.any? %>
+      <figure>
+        <table>
+          <thead>
+            <tr>
+              <th>Time (<%= Time.current.strftime("%Z") %>)</th>
+              <th>Hit Rate</th>
+              <th>Operations</th>
+              <th style="width: 100px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% sparkline.each do |point| %>
+              <tr>
+                <td><%= Time.parse(point[:time]).strftime("%H:%M:%S") %></td>
+                <td><%= number_to_percentage(point[:hit_rate], precision: 1) %></td>
+                <td><%= number_with_delimiter(point[:operations]) %></td>
+                <td>
+                  <progress value="<%= point[:hit_rate] %>" max="100"><%= point[:hit_rate] %>%</progress>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </figure>
+    <% else %>
+      <p><small>No data available for this time period.</small></p>
+    <% end %>
+  </article>

@@ -1,0 +1,154 @@
+<p><small>Dashboard</small></p>
+
+<div class="grid">
+  <div>
+    <%= form_with url: root_path, method: :get, local: true do |f| %>
+      <label for="window">
+        Time Window:
+        <%= f.select :window, window_options, { selected: params[:window] || "1h" }, { onchange: "this.form.submit();" } %>
+      </label>
+    <% end %>
+  </div>
+  <div>
+    <small>Last updated: <%= Time.current.strftime("%Y-%m-%d %H:%M:%S %Z") %></small>
+  </div>
+</div>
+
+<% if @results[:bucket_count].zero? %>
+  <article>
+    <header>
+      <h3>No cache data yet</h3>
+    </header>
+    <p>
+      CacheStache is collecting cache hit/miss data from your application.<br>
+      Data will appear here once cache operations are recorded.
+    </p>
+    <footer>
+      <small>
+        <strong>Configuration:</strong><br>
+        Bucket size: <%= @config.bucket_seconds / 60 %> minutes<br>
+        Retention: <%= @config.retention_seconds / 86400 %> days<br>
+        Sample rate: <%= (@config.sample_rate * 100).round %>%<br>
+        Keyspaces: <%= @config.keyspaces.size %><br>
+        <% if @storage_estimate %>
+          Estimated cache size: <%= @storage_estimate[:human_size] %>
+        <% end %>
+      </small>
+    </footer>
+  </article>
+<% else %>
+  <article>
+    <header>
+      <h2>Overall Cache Performance</h2>
+    </header>
+    <div role="group">
+      <article>
+        <small>Hit Rate</small>
+        <h3><mark><%= number_to_percentage(@results[:overall][:hit_rate_percent], precision: 1) %></mark></h3>
+      </article>
+      <article>
+        <small>Total Operations</small>
+        <h3><%= number_with_delimiter(@results[:overall][:total_operations]) %></h3>
+      </article>
+      <article>
+        <small>Cache Hits</small>
+        <h3><%= number_with_delimiter(@results[:overall][:hits]) %></h3>
+      </article>
+      <article>
+        <small>Cache Misses</small>
+        <h3><%= number_with_delimiter(@results[:overall][:misses]) %></h3>
+      </article>
+    </div>
+    <footer>
+      <small>
+        Showing data for the last <%= current_window_label %>
+        (<%= @results[:bucket_count] %> buckets of <%= @config.bucket_seconds / 60 %> minutes each)
+      </small>
+    </footer>
+  </article>
+
+  <% if @results[:keyspaces].any? %>
+    <article>
+      <header>
+        <h2>Keyspace Performance</h2>
+      </header>
+      <figure>
+        <table>
+          <thead>
+            <tr>
+              <th>Keyspace</th>
+              <th>Pattern</th>
+              <th>Hit Rate</th>
+              <th>Operations</th>
+              <th>Hits</th>
+              <th>Misses</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @results[:keyspaces].each do |name, stats| %>
+              <tr>
+                <td><strong><%= stats[:label] %></strong></td>
+                <td><code><%= stats[:pattern].inspect %></code></td>
+                <td><%= number_to_percentage(stats[:hit_rate_percent], precision: 1) %></td>
+                <td><%= number_with_delimiter(stats[:total_operations]) %></td>
+                <td><%= number_with_delimiter(stats[:hits]) %></td>
+                <td><%= number_with_delimiter(stats[:misses]) %></td>
+                <td>
+                  <%= link_to "Details →", keyspace_path(name, window: params[:window]) %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </figure>
+    </article>
+  <% end %>
+
+  <article>
+    <header>
+      <h2>Configuration</h2>
+    </header>
+    <figure>
+      <table>
+        <tbody>
+          <tr>
+            <th scope="row">Environment</th>
+            <td><%= @config.rails_env %></td>
+          </tr>
+          <tr>
+            <th scope="row">Monitored Store</th>
+            <td><%= CacheStache::Instrumentation.monitored_store_class || "Not installed" %></td>
+          </tr>
+          <tr>
+            <th scope="row">Bucket Size</th>
+            <td><%= @config.bucket_seconds / 60 %> minutes</td>
+          </tr>
+          <tr>
+            <th scope="row">Retention Period</th>
+            <td><%= @config.retention_seconds / 86400 %> days</td>
+          </tr>
+          <tr>
+            <th scope="row">Sample Rate</th>
+            <td><%= (@config.sample_rate * 100).round %>%</td>
+          </tr>
+          <tr>
+            <th scope="row">Configured Keyspaces</th>
+            <td><%= @config.keyspaces.size %></td>
+          </tr>
+          <% if @storage_estimate %>
+            <tr>
+              <th scope="row">Estimated Cache Size</th>
+              <td>
+                <%= @storage_estimate[:human_size] %>
+                <small>
+                  (~<%= @storage_estimate[:max_buckets] %> buckets × <%= @storage_estimate[:bytes_per_bucket] %> bytes)
+                </small>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </figure>
+  </article>
+<% end %>

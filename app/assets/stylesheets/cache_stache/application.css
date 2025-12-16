@@ -1,0 +1,5 @@
+figure { overflow-x: auto; }
+[role=group] { margin-bottom: 0; }
+code { word-break: break-all; }
+td code, header code { max-width: 300px; display: inline-block; }
+article > header h2 { margin: 0; }
