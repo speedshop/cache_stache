@@ -55,6 +55,7 @@ module CacheStacheTestHelpers
       c.retention_seconds = options.fetch(:retention_seconds, 3600)
       c.sample_rate = options.fetch(:sample_rate, 1.0)
       c.use_rack_after_reply = options.fetch(:use_rack_after_reply, false)
+      c.enabled = options.fetch(:enabled, true)
 
       keyspaces.each do |name, keyspace_config|
         c.keyspace(name) do

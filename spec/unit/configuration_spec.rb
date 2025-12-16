@@ -11,6 +11,7 @@ RSpec.describe CacheStache::Configuration do
     before do
       allow(ENV).to receive(:fetch).and_call_original
       allow(ENV).to receive(:fetch).with("CACHE_STACHE_REDIS_URL").and_return(default_redis_url)
+      allow(ENV).to receive(:fetch).with("RAILS_ENV", "development").and_return("development")
     end
 
     it { expect(config.bucket_seconds).to eq(5.minutes.to_i) }
