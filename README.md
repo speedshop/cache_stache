@@ -63,9 +63,9 @@ All settings go in `config/initializers/cache_stache.rb`:
 
 ```ruby
 CacheStache.configure do |config|
-  # Redis connection for storing cache metrics
-  # Falls back to ENV["REDIS_URL"] if not set
-  config.redis_url = ENV.fetch("CACHE_STACHE_REDIS_URL", ENV["REDIS_URL"])
+  # Redis connection for storing cache metrics.
+  # Can be a String (URL), Proc, or Redis-compatible object.
+  config.redis = ENV.fetch("CACHE_STACHE_REDIS_URL", ENV["REDIS_URL"])
 
   # Time bucket size
   config.bucket_seconds = 5.minutes
@@ -99,7 +99,7 @@ end
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
-| `redis_url` | `ENV["CACHE_STACHE_REDIS_URL"]` or `ENV["REDIS_URL"]` | Redis connection URL |
+| `redis` | `ENV["CACHE_STACHE_REDIS_URL"]` or `ENV["REDIS_URL"]` | Redis connection (String URL, Proc, or Redis object) |
 | `redis_pool_size` | 5 | Size of the Redis connection pool |
 | `bucket_seconds` | 5 minutes | Size of each time bucket |
 | `retention_seconds` | 7 days | How long to keep data |
