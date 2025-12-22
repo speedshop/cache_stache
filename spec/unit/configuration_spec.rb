@@ -19,9 +19,36 @@ RSpec.describe CacheStache::Configuration do
     it { expect(config.sample_rate).to eq(1.0) }
     it { expect(config.enabled).to be(true) }
     it { expect(config.use_rack_after_reply).to be(false) }
-    it { expect(config.redis_url).to eq(default_redis_url) }
+    it { expect(config.redis).to eq(default_redis_url) }
     it { expect(config.redis_pool_size).to eq(5) }
     it { expect(config.keyspaces).to eq([]) }
+  end
+
+  describe "#build_redis" do
+    it "calls the proc when redis is a Proc" do
+      redis_instance = instance_double(Redis)
+      config.redis = -> { redis_instance }
+
+      expect(config.build_redis).to eq(redis_instance)
+    end
+
+    it "creates a Redis instance when redis is a String URL" do
+      config.redis = "redis://localhost:6379/1"
+
+      expect(Redis).to receive(:new).with(
+        hash_including(url: "redis://localhost:6379/1")
+      ).and_call_original
+
+      result = config.build_redis
+      expect(result).to be_a(Redis)
+    end
+
+    it "returns the object directly when redis is an Object" do
+      redis_instance = instance_double(Redis)
+      config.redis = redis_instance
+
+      expect(config.build_redis).to eq(redis_instance)
+    end
   end
 
   describe "#keyspace" do
@@ -135,12 +162,27 @@ RSpec.describe CacheStache::Configuration do
 
   describe "#validate!" do
     before do
-      config.redis_url = "redis://localhost:6379/0"
+      config.redis = "redis://localhost:6379/0"
     end
 
-    it "requires redis_url" do
-      config.redis_url = nil
-      expect { config.validate! }.to raise_error(CacheStache::Error, /redis_url must be configured/)
+    it "requires redis" do
+      config.redis = nil
+      expect { config.validate! }.to raise_error(CacheStache::Error, /redis must be configured/)
+    end
+
+    it "rejects empty string for redis" do
+      config.redis = "   "
+      expect { config.validate! }.to raise_error(CacheStache::Error, /redis must be a Proc, String/)
+    end
+
+    it "accepts a Proc for redis" do
+      config.redis = -> { Redis.new }
+      expect { config.validate! }.not_to raise_error
+    end
+
+    it "accepts an Object for redis" do
+      config.redis = instance_double(Redis)
+      expect { config.validate! }.not_to raise_error
     end
 
     it "requires redis_pool_size to be positive" do

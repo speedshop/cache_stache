@@ -26,7 +26,7 @@ module CacheStache
     def initialize(config = CacheStache.configuration)
       @config = config
       @pool = ConnectionPool.new(size: @config.redis_pool_size) do
-        Redis.new(url: @config.redis_url)
+        @config.build_redis
       end
     end
 

@@ -5,8 +5,10 @@ require "active_support/core_ext/numeric/time"
 
 module CacheStache
   class Configuration
+    DEFAULT_REDIS_OPTIONS = {reconnect_attempts: 0}.freeze
+
     attr_accessor :bucket_seconds, :retention_seconds, :sample_rate, :enabled,
-      :redis_url, :redis_pool_size, :use_rack_after_reply, :max_buckets
+      :redis, :redis_pool_size, :use_rack_after_reply, :max_buckets
     attr_reader :keyspaces
 
     def initialize
@@ -15,11 +17,31 @@ module CacheStache
       @sample_rate = 1.0
       @enabled = rails_env != "test"
       @use_rack_after_reply = false
-      @redis_url = ENV.fetch("CACHE_STACHE_REDIS_URL") { ENV.fetch("REDIS_URL", "redis://localhost:6379/0") }
+      @redis = ENV.fetch("CACHE_STACHE_REDIS_URL") { ENV.fetch("REDIS_URL", "redis://localhost:6379/0") }
       @redis_pool_size = 5
       @max_buckets = 288
       @keyspaces = []
       @keyspace_cache = {}
+    end
+
+    # Factory method to create a new Redis instance.
+    #
+    # Handles three options:
+    #
+    #   Option  Class       Result
+    #   :redis  Proc    ->  redis.call
+    #   :redis  String  ->  Redis.new(url: redis)
+    #   :redis  Object  ->  redis (assumed to be a Redis-compatible client)
+    #
+    def build_redis
+      case redis
+      when Proc
+        redis.call
+      when String
+        ::Redis.new(DEFAULT_REDIS_OPTIONS.merge(url: redis))
+      else
+        redis
+      end
     end
 
     def keyspace(name, &block)
@@ -43,8 +65,9 @@ module CacheStache
     def validate!
       raise Error, "bucket_seconds must be positive" unless bucket_seconds.to_i.positive?
       raise Error, "retention_seconds must be positive" unless retention_seconds.to_i.positive?
+      raise Error, "redis must be configured" if redis.nil?
+      raise Error, "redis must be a Proc, String (URL), or Redis-compatible object" unless valid_redis_option?
       raise Error, "redis_pool_size must be positive" unless redis_pool_size.to_i.positive?
-      raise Error, "redis_url must be configured" if redis_url.to_s.strip.empty?
       raise Error, "sample_rate must be between 0 and 1" unless sample_rate&.between?(0, 1)
       raise Error, "max_buckets must be positive" unless max_buckets.to_i.positive?
 
@@ -63,6 +86,12 @@ module CacheStache
     end
 
     private
+
+    def valid_redis_option?
+      return true if redis.is_a?(Proc)
+      return redis.to_s.strip.length > 0 if redis.is_a?(String)
+      true # Assume other objects are Redis-compatible clients
+    end
 
     def key_digest(key)
       # Use last 4 chars of a simple hash as cache key

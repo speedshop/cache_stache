@@ -50,7 +50,7 @@ module CacheStacheTestHelpers
   # Build a test configuration with common defaults
   def build_test_config(keyspaces: {}, **options)
     CacheStache::Configuration.new.tap do |c|
-      c.redis_url = CACHE_STACHE_TEST_REDIS_URL
+      c.redis = CACHE_STACHE_TEST_REDIS_URL
       c.bucket_seconds = options.fetch(:bucket_seconds, 300)
       c.retention_seconds = options.fetch(:retention_seconds, 3600)
       c.sample_rate = options.fetch(:sample_rate, 1.0)
@@ -87,7 +87,7 @@ RSpec.configure do |config|
   config.before do
     # Configure CacheStache to use test Redis
     CacheStache.configure do |c|
-      c.redis_url = CACHE_STACHE_TEST_REDIS_URL
+      c.redis = CACHE_STACHE_TEST_REDIS_URL
       c.redis_pool_size = 1
       c.enabled = true
     end

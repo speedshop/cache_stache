@@ -4,9 +4,15 @@
 # This file configures the CacheStache cache hit rate monitoring system.
 
 CacheStache.configure do |config|
-  # Redis connection for storing cache metrics
-  # Falls back to ENV["REDIS_URL"] if not set
-  config.redis_url = ENV.fetch("CACHE_STACHE_REDIS_URL", ENV["REDIS_URL"])
+  # Redis connection for storing cache metrics.
+  # Can be a String (URL), Proc, or Redis-compatible object.
+  #
+  # Examples:
+  #   config.redis = "redis://localhost:6379/0"
+  #   config.redis = -> { Redis.new(url: ENV["REDIS_URL"]) }
+  #   config.redis = ConnectionPool.new { Redis.new }
+  #
+  config.redis = ENV.fetch("CACHE_STACHE_REDIS_URL", ENV["REDIS_URL"])
 
   # Size of time buckets for aggregation (default: 5 minutes)
   config.bucket_seconds = 5.minutes
