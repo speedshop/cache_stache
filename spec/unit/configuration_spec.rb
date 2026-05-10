@@ -24,6 +24,20 @@ RSpec.describe CacheStache::Configuration do
     it { expect(config.keyspaces).to eq([]) }
   end
 
+  describe "duration settings" do
+    it "coerces bucket_seconds to integer seconds" do
+      config.bucket_seconds = 5.minutes
+
+      expect(config.bucket_seconds).to eq(300)
+    end
+
+    it "coerces retention_seconds to integer seconds" do
+      config.retention_seconds = 7.days
+
+      expect(config.retention_seconds).to eq(604_800)
+    end
+  end
+
   describe "#build_redis" do
     it "calls the proc when redis is a Proc" do
       redis_instance = instance_double(Redis)

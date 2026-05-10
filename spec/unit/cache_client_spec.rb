@@ -75,6 +75,17 @@ RSpec.describe CacheStache::CacheClient do
       expect(ttl).to be <= config.retention_seconds
     end
 
+    it "increments stats when retention is configured with ActiveSupport::Duration" do
+      duration_config = build_test_config(retention_seconds: 7.days)
+      duration_client = described_class.new(duration_config)
+
+      duration_client.increment_stats(bucket_ts, increments)
+
+      buckets = duration_client.fetch_buckets(bucket_ts - 100, bucket_ts + 100)
+      expect(buckets.size).to eq(1)
+      expect(buckets.first[:stats]["overall:hits"]).to eq(1.0)
+    end
+
     it "handles errors gracefully" do
       # Create client, then make the pool raise errors
       test_client = described_class.new(config)
@@ -166,6 +177,17 @@ RSpec.describe CacheStache::CacheClient do
       expect(metadata["bucket_seconds"]).to eq(300)
       expect(metadata["retention_seconds"]).to eq(3600)
       expect(metadata["updated_at"]).to be_a(Integer)
+    end
+
+    it "stores configuration metadata when durations use ActiveSupport::Duration" do
+      duration_config = build_test_config(bucket_seconds: 5.minutes, retention_seconds: 7.days)
+      duration_client = described_class.new(duration_config)
+
+      duration_client.store_config_metadata
+      metadata = duration_client.fetch_config_metadata
+
+      expect(metadata["bucket_seconds"]).to eq(5.minutes.to_i)
+      expect(metadata["retention_seconds"]).to eq(7.days.to_i)
     end
 
     it "handles errors gracefully" do

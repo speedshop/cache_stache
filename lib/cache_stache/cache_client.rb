@@ -39,7 +39,7 @@ module CacheStache
           redis.eval(
             INCR_AND_EXPIRE_SCRIPT,
             keys: [key],
-            argv: [@config.retention_seconds, increments.to_json]
+            argv: [retention_seconds, increments.to_json]
           )
         end
       end
@@ -79,16 +79,16 @@ module CacheStache
     def store_config_metadata
       key = "cache_stache:v1:#{@config.rails_env}:config"
       metadata = {
-        bucket_seconds: @config.bucket_seconds,
-        retention_seconds: @config.retention_seconds,
+        bucket_seconds: @config.bucket_seconds.to_i,
+        retention_seconds: retention_seconds,
         updated_at: Time.current.to_i
       }
 
       without_instrumentation do
         @pool.with do |redis|
           # Use SETEX for atomic set-with-expiry (single command)
-          Rails.logger.debug { "CacheStache: Redis SETEX #{key} #{@config.retention_seconds}" }
-          redis.setex(key, @config.retention_seconds, metadata.to_json)
+          Rails.logger.debug { "CacheStache: Redis SETEX #{key} #{retention_seconds}" }
+          redis.setex(key, retention_seconds, metadata.to_json)
         end
       end
     rescue => e
@@ -162,6 +162,10 @@ module CacheStache
       else
         "#{(bytes / (1024.0 * 1024 * 1024)).round(2)} GB"
       end
+    end
+
+    def retention_seconds
+      @config.retention_seconds.to_i
     end
 
     def bucket_key(timestamp)
