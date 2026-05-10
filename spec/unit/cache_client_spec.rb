@@ -75,6 +75,21 @@ RSpec.describe CacheStache::CacheClient do
       expect(ttl).to be <= config.retention_seconds
     end
 
+    it "coerces ActiveSupport::Duration retention values to seconds" do
+      redis = instance_double(Redis)
+      duration_config = build_test_config(retention_seconds: 7.days)
+      duration_config.redis = redis
+      duration_client = described_class.new(duration_config)
+
+      expect(redis).to receive(:eval).with(
+        described_class::INCR_AND_EXPIRE_SCRIPT,
+        keys: ["cache_stache:v1:test:#{bucket_ts}"],
+        argv: [7.days.to_i, increments.to_json]
+      )
+
+      duration_client.increment_stats(bucket_ts, increments)
+    end
+
     it "handles errors gracefully" do
       # Create client, then make the pool raise errors
       test_client = described_class.new(config)
@@ -166,6 +181,24 @@ RSpec.describe CacheStache::CacheClient do
       expect(metadata["bucket_seconds"]).to eq(300)
       expect(metadata["retention_seconds"]).to eq(3600)
       expect(metadata["updated_at"]).to be_a(Integer)
+    end
+
+    it "coerces ActiveSupport::Duration retention values to seconds" do
+      redis = instance_double(Redis)
+      duration_config = build_test_config(bucket_seconds: 5.minutes, retention_seconds: 7.days)
+      duration_config.redis = redis
+      duration_client = described_class.new(duration_config)
+
+      expect(redis).to receive(:setex) do |key, ttl, payload|
+        metadata = JSON.parse(payload)
+
+        expect(key).to eq("cache_stache:v1:test:config")
+        expect(ttl).to eq(7.days.to_i)
+        expect(metadata["bucket_seconds"]).to eq(5.minutes.to_i)
+        expect(metadata["retention_seconds"]).to eq(7.days.to_i)
+      end
+
+      duration_client.store_config_metadata
     end
 
     it "handles errors gracefully" do

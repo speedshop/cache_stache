@@ -7,13 +7,13 @@ module CacheStache
   class Configuration
     DEFAULT_REDIS_OPTIONS = {reconnect_attempts: 0}.freeze
 
-    attr_accessor :bucket_seconds, :retention_seconds, :sample_rate, :enabled,
-      :redis, :redis_pool_size, :use_rack_after_reply, :max_buckets
-    attr_reader :keyspaces
+    attr_accessor :sample_rate, :enabled, :redis, :redis_pool_size,
+      :use_rack_after_reply, :max_buckets
+    attr_reader :bucket_seconds, :retention_seconds, :keyspaces
 
     def initialize
-      @bucket_seconds = 5.minutes.to_i
-      @retention_seconds = 7.days.to_i
+      self.bucket_seconds = 5.minutes
+      self.retention_seconds = 7.days
       @sample_rate = 1.0
       @enabled = rails_env != "test"
       @use_rack_after_reply = false
@@ -33,6 +33,14 @@ module CacheStache
     #   :redis  String  ->  Redis.new(url: redis)
     #   :redis  Object  ->  redis (assumed to be a Redis-compatible client)
     #
+    def bucket_seconds=(value)
+      @bucket_seconds = value.to_i
+    end
+
+    def retention_seconds=(value)
+      @retention_seconds = value.to_i
+    end
+
     def build_redis
       case redis
       when Proc
