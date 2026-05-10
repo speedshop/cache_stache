@@ -22,8 +22,9 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir.chdir(__dir__) do
     Dir[
-      "{app,bin,config,lib,spec,tasks}/**/*",
-      "*.rb",
+      "{app,config,lib,tasks}/**/*",
+      "CHANGELOG.md",
+      "LICENSE.txt",
       "README.md"
     ].select { |path| File.file?(path) }
   end
